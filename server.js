@@ -23,6 +23,7 @@ var con = mysql.createConnection({
 })
 
 app.use(bodyParser.json())
+app.use(express.static('assets'))
 
 app.post('/getItems', function(req, res) {
     console.log("request gotten")
