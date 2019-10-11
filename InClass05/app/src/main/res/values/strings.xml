@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">EstimoteClassAssignment</string>
+    <string name="estimoteAppId">estimote-demo-app-lhd</string>
+    <string name="estimoteAppToken">ec6d62086fea2a00ae0665b8b0780cea</string>
+</resources>
