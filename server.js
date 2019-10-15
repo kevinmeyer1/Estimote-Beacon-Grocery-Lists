@@ -51,7 +51,7 @@ app.post('/getItems', function(req, res) {
          major=49357, minor=20877
     */
 
-    if (major == '15212' && minor == '31506') {
+    if (major == '49357' && minor == '20877') {
         region = 'grocery'
     } else if (major == '30462' && minor == '43265') {
         region = 'lifestyle'

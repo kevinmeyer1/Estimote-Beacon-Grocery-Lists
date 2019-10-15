@@ -37,9 +37,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
-
-    private ProximityObserver proximityObserver;
-
     private BeaconManager beaconManager;
     private BeaconRegion region;
 
@@ -49,6 +46,9 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView.LayoutManager layoutManager;
 
     final ArrayList<Item> itemList = new ArrayList<>();
+
+    public int currentMajor;
+    public int currentMinor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +65,9 @@ public class MainActivity extends AppCompatActivity {
         mAdapter = new MyAdapter(itemList);
         recyclerView.setAdapter(mAdapter);
 
+        //set current major/minor to 0 - not a possible value
+        currentMajor = 0;
+        currentMinor = 0;
 
         beaconManager = new BeaconManager(this);
 
@@ -78,7 +81,18 @@ public class MainActivity extends AppCompatActivity {
                     int major = closestBeacon.getMajor();
                     int minor = closestBeacon.getMinor();
 
-                    Log.d("demo", "major: " + major + ", minor: " + minor);
+                    if (currentMajor == 0 || currentMinor == 0) {
+                        //there is not a beacon saved currently on the app (major minor)
+                        currentMajor = major;
+                        currentMinor = minor;
+                    } else if (currentMajor != major || currentMinor != minor){
+                        //there is a beacon saved currently on the app but the closest beacon is a new one - new request
+                        currentMajor = major;
+                        currentMinor = minor;
+                    } else {
+                        //there is a beacon saved currently on the app but the closest beacon is the same - no request, same data
+                        return;
+                    }
 
                     //Sends request, calls function at bottom
                     getItems(major, minor, new Callback() {
