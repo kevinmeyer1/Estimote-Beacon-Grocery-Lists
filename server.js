@@ -44,13 +44,18 @@ app.post('/getItems', function(req, res) {
         grocery: 15212, 31506
         lifestyle: 30462, 43265
         produce: 26535, 44799
+
+        Our beacons:
+
+         major=47152, minor=61548
+         major=49357, minor=20877
     */
 
     if (major == '15212' && minor == '31506') {
         region = 'grocery'
     } else if (major == '30462' && minor == '43265') {
         region = 'lifestyle'
-    } else if (major == '26535' && minor == '44799') {
+    } else if (major == '47152' && minor == '61548') {
         region = 'produce'
     } else {
         region = null
