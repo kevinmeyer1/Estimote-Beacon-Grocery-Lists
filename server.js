@@ -23,8 +23,11 @@ var con = mysql.createConnection({
 })
 
 app.use(bodyParser.json())
+
+//Allows the app to look at (example) inclass05.herokuapp.com/coca_cola.png and get the static file (image) in the assets folder.
 app.use(express.static('assets'))
 
+//Takes in a major/minor, uses to determine the section of the store the user is in. Grabs the jsonArray of items and sends it back as part of the response
 app.post('/getItems', function(req, res) {
     console.log("request gotten")
 
@@ -36,9 +39,11 @@ app.post('/getItems', function(req, res) {
     console.log(minor)
 
     /*
-      grocery: 15212, 31506
-      lifestyle: 30462, 43265
-      produce: 26535, 44799
+        Values for class:
+
+        grocery: 15212, 31506
+        lifestyle: 30462, 43265
+        produce: 26535, 44799
     */
 
     if (major == '15212' && minor == '31506') {
@@ -47,6 +52,13 @@ app.post('/getItems', function(req, res) {
         region = 'lifestyle'
     } else if (major == '26535' && minor == '44799') {
         region = 'produce'
+    } else {
+        region = null
+
+        res.status(400)
+        res.setHeader('Content-Type', 'text/plain')
+        res.write('Major and minor do not match to a region')
+        res.send()
     }
 
     var itemsQuery = `SELECT * FROM items WHERE region="${region}"`
@@ -55,34 +67,14 @@ app.post('/getItems', function(req, res) {
         if (err) {
             console.log(err)
             res.status(500)
+            res.setHeader('Content-Type', 'text/plain')
+            res.write(`Error while getting items from database for region: ${region}`)
             res.send()
         } else {
-
-            console.log(result)
+            //JSONObject is sent back from db.
             res.status(200)
             res.setHeader('Content-Type', 'application/json')
             res.json(result)
-
-
-
-
-            /*
-            var usernameJson = {
-                'username': username
-            }
-
-            //create a jwt token with the username of the user
-            var token = jwt.sign(JSON.stringify(usernameJson), jwtSecret)
-
-            //send token back to the app as json object
-            var jwtJson = {
-                'token': token
-            }
-
-            res.status(200)
-            res.setHeader('Content-Type', 'application/json')
-            res.json(jwtJson)
-            */
         }
     })
 })
