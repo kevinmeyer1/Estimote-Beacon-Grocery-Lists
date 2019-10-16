@@ -69,11 +69,11 @@ app.post('/getItems', function(req, res) {
         res.send()
     }
 
-    if (region != '') {
-        itemsQuery = `SELECT * FROM items WHERE region="${region}"`
-    } else {
+    if (region == 'all') {
         itemsQuery = 'SELECT * FROM items'
-    }    
+    } else {
+        itemsQuery = `SELECT * FROM items WHERE region="${region}"`
+    }
 
     con.query(itemsQuery, function(err, result, fields) {
         if (err) {
