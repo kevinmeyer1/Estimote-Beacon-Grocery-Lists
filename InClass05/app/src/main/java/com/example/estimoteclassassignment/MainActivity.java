@@ -42,19 +42,17 @@ public class MainActivity extends AppCompatActivity {
 
     public int currentMajor;
     public int currentMinor;
+    public int currentRssi;
 
     //The only major and minor values that I want to find from beacons - ignore all others
-    //List of Beacons             class, class, class,  mine,  mine
-    final int[] whitelistMajor = {15212, 30462, 26535, 47152, 49357};
-    final int[] whitelistMinor = {31506, 43265, 44799, 61548, 20877};
+    final int[] whitelistMajor = {47152, 15326, 41072};
+    final int[] whitelistMinor = {61548, 56751, 44931};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         SystemRequirementsChecker.checkWithDefaultDialogs(this);
-
-
 
         //recycler view stuff
         recyclerView = findViewById(R.id.recyclerView);
@@ -92,21 +90,38 @@ public class MainActivity extends AppCompatActivity {
                     Beacon closestBeacon = beacons.get(0);
                     int major = closestBeacon.getMajor();
                     int minor = closestBeacon.getMinor();
+                    int rssi = closestBeacon.getRssi();
 
                     //check that the major/minor are in whitelist
-                    boolean containsMajor = inMajorWhitelist(major);
-                    boolean containsMinor = inMinorWhitelist(minor);
+                    boolean containsMajor = false;
+                    boolean containsMinor = false;
+
+                    for (int x : whitelistMinor) {
+                        if (x == minor) {
+                            containsMinor = true;
+                        }
+                    }
+
+                    for (int x : whitelistMajor) {
+                        if (x == major) {
+                            containsMajor = true;
+                        }
+                    }
 
                     if (!containsMajor || !containsMinor) {
+                        System.out.println("first not found");
+
                         //The returned closest beacon is not in the whitelist. check to see if any of the items are in the whitelist
                         boolean foundUseableBeacon = false;
 
                         for (Beacon b : beacons) {
-                            if (inMajorWhitelist(b.getMajor())) {
-                                major = b.getMajor();
-                                minor = b.getMinor();
-                                foundUseableBeacon = true;
-                                continue;
+                            for (int x : whitelistMajor) {
+                                if (x == b.getMajor()) {
+                                    major = b.getMajor();
+                                    minor = b.getMinor();
+                                    foundUseableBeacon = true;
+                                    continue;
+                                }
                             }
                         }
 
@@ -123,10 +138,22 @@ public class MainActivity extends AppCompatActivity {
                         //there is not a beacon saved currently on the app (major minor)
                         currentMajor = major;
                         currentMinor = minor;
+                        currentRssi = rssi;
                     } else if (currentMajor != major || currentMinor != minor){
                         //there is a beacon saved currently on the app but the closest beacon is a new one - new request
+                        /*
+                        if (Math.abs(currentRssi - rssi) > 10) {
+                            currentMajor = major;
+                            currentMinor = minor;
+                            currentRssi = rssi;
+                        } else {
+                            //rssi difference is not enough
+                            return;
+                        }
+                        */
                         currentMajor = major;
                         currentMinor = minor;
+                        currentRssi = rssi;
                     } else {
                         //there is a beacon saved currently on the app but the closest beacon is the same - no request, same data
                         return;
@@ -155,8 +182,6 @@ public class MainActivity extends AppCompatActivity {
                 getItems(-1, -1);
             }
         });
-
-
     }
 
     //sends request to heroku for the list of items per major and minor of beacon
@@ -232,25 +257,5 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
-    }
-
-    public boolean inMajorWhitelist(int major) {
-        for (int x : this.whitelistMajor) {
-            if (x == major) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public boolean inMinorWhitelist(int minor) {
-        for (int x : whitelistMinor) {
-            if (x == minor) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

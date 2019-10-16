@@ -52,21 +52,15 @@ app.post('/getItems', function(req, res) {
          major=49357, minor=20877
     */
 
-    if (major == '15212' && minor == '31506') {
+    if (major == '47152' && minor == '61548') {
         //Class beacon
         region = 'grocery'
-    } else if (major == '30462' && minor == '43265') {
+    } else if (major == '15326' && minor == '56751') {
         //Class beacon
         region = 'lifestyle'
-    } else if (major == '26535' && minor == '44799') {
+    } else if (major == '41072' && minor == '44931') {
         //Class beacon
         region = 'produce'
-    } else if (major == '47152' && minor == '61548') {
-        //My beacon
-        region = 'grocery'
-    } else if (major == '49357' && minor == '20877') {
-        //My beacon
-        region = 'lifestyle'
     } else if (major == '' && minor == '') {
         region = 'all'
     } else {
