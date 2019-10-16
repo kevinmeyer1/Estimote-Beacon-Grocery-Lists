@@ -50,9 +50,9 @@ public class MainActivity extends AppCompatActivity {
         SystemRequirementsChecker.checkWithDefaultDialogs(this);
 
         //The only major and minor values that I want to find from beacons - ignore all others
+        //List of Beacons             class, class, class,  mine,  mine
         final int[] whitelistMajor = {15212, 30462, 26535, 47152, 49357};
         final int[] whitelistMinor = {31506, 43265, 44799, 61548, 20877};
-        //List of Beacons             class, class, class,  mine,  mine
 
         //recycler view stuff
         recyclerView = findViewById(R.id.recyclerView);
@@ -67,12 +67,26 @@ public class MainActivity extends AppCompatActivity {
 
         beaconManager = new BeaconManager(this);
 
+        region = new BeaconRegion("ranged region",
+                UUID.fromString("B9407F30-F5F8-466E-AFF9-25556B57FE6D"), null, null);
+
+        //Get all items first to populate the list
+        getItems(-1, -1);
+
+        beaconManager.connect(new BeaconManager.ServiceReadyCallback() {
+            @Override
+            public void onServiceReady() {
+                beaconManager.startRanging(region);
+                beaconManager.startMonitoring(region);
+            }
+        });
+
         beaconManager.setRangingListener(new BeaconManager.BeaconRangingListener() {
             @Override
             public void onBeaconsDiscovered(BeaconRegion beaconRegion, List<Beacon> beacons) {
-                if (!beacons.isEmpty()) {
-                    System.out.println("onBeaconsDiscovered: " + beacons);
+                System.out.println("Beacons: " + beacons);
 
+                if (!beacons.isEmpty()) {
                     Beacon closestBeacon = beacons.get(0);
                     int major = closestBeacon.getMajor();
                     int minor = closestBeacon.getMinor();
@@ -80,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
                     boolean containsMajor = false;
                     boolean containsMinor = false;
 
+                    //check that the major/minor are in whitelist
                     for (int x : whitelistMajor) {
                         if (x == major) {
                             containsMajor = true;
@@ -96,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
 
+                    //reset currentMajor/Minor values
                     if (currentMajor == 0 || currentMinor == 0) {
                         //there is not a beacon saved currently on the app (major minor)
                         currentMajor = major;
@@ -110,93 +126,46 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     //Sends request, calls function at bottom
-                    getItems(major, minor, new Callback() {
-
-                        @Override
-                        public void onFailure(Call call, IOException e) {
-                            String mMessage = e.getMessage();
-                            System.out.println(mMessage);
-                        }
-
-                        @Override
-                        public void onResponse(Call call, Response response) throws IOException {
-                            String body = response.body().string();
-
-                            try {
-                                //Gets the JSONArray of items from server
-                                JSONArray jsonResponseData = new JSONArray(body);
-
-                                //remove old items from itemList
-                                itemList.clear();
-
-                                //put new items in itemList
-                                for (int i = 0; i < jsonResponseData.length(); i++) {
-                                    JSONObject obj = (JSONObject) jsonResponseData.get(i);
-                                    Item currentItem = new Item(
-                                            obj.getInt("discount"),
-                                            obj.getString("name"),
-                                            obj.getString("photo"),
-                                            obj.getDouble("price"),
-                                            obj.getString("region")
-                                    );
-                                    itemList.add(currentItem);
-                                }
-                            } catch (JSONException e) {
-                                System.out.println(e.getLocalizedMessage());
-                            }
-
-                            //repopulate the list on the app
-                            runOnUiThread(new Runnable() {
-
-                                @Override
-                                public void run() {
-
-                                    mAdapter.notifyDataSetChanged();
-
-                                }
-                            });
-                        }
-                    });
+                    getItems(major, minor);
                 } else {
-                    System.out.println("No beacons were found");
+                    //this doesn't work at all either
+                    getItems(-1, -1);
                 }
             }
         });
-    }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        region = new BeaconRegion("ranged region",
-                UUID.fromString("B9407F30-F5F8-466E-AFF9-25556B57FE6D"), null, null);
-
-        SystemRequirementsChecker.checkWithDefaultDialogs(this);
-
-        beaconManager.connect(new BeaconManager.ServiceReadyCallback() {
+        //This doesnt seem to work at all
+        beaconManager.setMonitoringListener(new BeaconManager.BeaconMonitoringListener() {
             @Override
-            public void onServiceReady() {
-                beaconManager.startRanging(region);
+            public void onEnteredRegion(BeaconRegion beaconRegion, List<Beacon> beacons) {
+                System.out.println("||||||||||||||||||||ENTER||||||||||||||||||||");
+                //this will then talk to onBeaconsDiscovered
+            }
+
+            @Override
+            public void onExitedRegion(BeaconRegion beaconRegion) {
+                System.out.println("||||||||||||||||||||EXIT||||||||||||||||||||");
+                getItems(-1, -1);
             }
         });
-    }
 
-    @Override
-    protected void onPause() {
-        beaconManager.stopRanging(region);
 
-        super.onPause();
     }
 
     //sends request to heroku for the list of items per major and minor of beacon
-    public void getItems(int major, int minor, final Callback callback) {
+    public void getItems(int major, int minor) {
         MediaType MEDIA_TYPE = MediaType.parse("application/json");
         String url = "https://inclass05.herokuapp.com/getItems";
         JSONObject json = new JSONObject();
 
         try {
-            json.put("major", major);
-            json.put("minor", minor);
+            if (major == -1 || minor == -1) {
+                json.put("major", "");
+                json.put("minor", "");
+            } else {
+                json.put("major", major);
+                json.put("minor", minor);
+            }
         } catch (JSONException e) {
             System.out.println(e.getLocalizedMessage());
         }
@@ -210,7 +179,51 @@ public class MainActivity extends AppCompatActivity {
                 .post(body)
                 .build();
 
-        Call call = client.newCall(request);
-        call.enqueue(callback);
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                String mMessage = e.getMessage();
+                System.out.println(mMessage);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String body = response.body().string();
+
+                try {
+                    //Gets the JSONArray of items from server
+                    JSONArray jsonResponseData = new JSONArray(body);
+
+                    //remove old items from itemList
+                    itemList.clear();
+
+                    //put new items in itemList
+                    for (int i = 0; i < jsonResponseData.length(); i++) {
+                        JSONObject obj = (JSONObject) jsonResponseData.get(i);
+                        Item currentItem = new Item(
+                                obj.getInt("discount"),
+                                obj.getString("name"),
+                                obj.getString("photo"),
+                                obj.getDouble("price"),
+                                obj.getString("region")
+                        );
+                        itemList.add(currentItem);
+                    }
+                } catch (JSONException e) {
+                    System.out.println(e.getLocalizedMessage());
+                }
+
+                //repopulate the list on the app
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        mAdapter.notifyDataSetChanged();
+
+                    }
+                });
+            }
+        });
     }
 }
