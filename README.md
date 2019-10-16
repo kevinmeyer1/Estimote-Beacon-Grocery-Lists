@@ -90,11 +90,11 @@ The MySQL database on Amazon AWS is pretty basic.
 
 ### All Items
 
-![Image of All Items](https://imgur.com/a/tnvUf1e)
+https://imgur.com/a/tnvUf1e
 
 ### Grocery
 
-![Image of Grocery Items](https://imgur.com/a/cZp8hQp)
+https://imgur.com/a/cZp8hQp
 
 ## Avoiding Oscillation
 
