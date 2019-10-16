@@ -1,4 +1,4 @@
-package com.example.estimoteclassassignment.Model;
+package com.example.estimoteclassassignment;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -6,7 +6,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.example.estimoteclassassignment.R;
+import com.example.estimoteclassassignment.Model.Item;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
@@ -62,6 +62,13 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
         Item currentItem = mDataset.get(position);
 
         name.setText(currentItem.name);
+
+        if (currentItem.name.startsWith("Fresh Seedless")) {
+            name.setTextSize(17);
+        } else {
+            name.setTextSize(25);
+        }
+
         region.setText(currentItem.region);
         price.setText("$" +currentItem.price.toString());
         discount.setText("Discount: " + currentItem.discount + "%");

@@ -34,6 +34,7 @@ app.post('/getItems', function(req, res) {
     var major = req.body.major
     var minor = req.body.minor
     var region = ''
+    var itemsQuery = ''
 
     console.log(major)
     console.log(minor)
@@ -57,6 +58,8 @@ app.post('/getItems', function(req, res) {
         region = 'lifestyle'
     } else if (major == '47152' && minor == '61548') {
         region = 'produce'
+    } else if (major == '' && minor == '') {
+        region = 'all'
     } else {
         region = null
 
@@ -66,7 +69,11 @@ app.post('/getItems', function(req, res) {
         res.send()
     }
 
-    var itemsQuery = `SELECT * FROM items WHERE region="${region}"`
+    if (region != '') {
+        itemsQuery = `SELECT * FROM items WHERE region="${region}"`
+    } else {
+        itemsQuery = 'SELECT * FROM items'
+    }    
 
     con.query(itemsQuery, function(err, result, fields) {
         if (err) {

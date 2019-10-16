@@ -3,17 +3,12 @@ package com.example.estimoteclassassignment;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
-import android.util.Log;
 
 import com.estimote.coresdk.common.requirements.SystemRequirementsChecker;
 import com.estimote.coresdk.observation.region.beacon.BeaconRegion;
 import com.estimote.coresdk.recognition.packets.Beacon;
 import com.estimote.coresdk.service.BeaconManager;
-import com.estimote.proximity_sdk.api.EstimoteCloudCredentials;
-import com.estimote.proximity_sdk.api.ProximityObserver;
-import com.estimote.proximity_sdk.api.ProximityObserverBuilder;
 import com.example.estimoteclassassignment.Model.Item;
-import com.example.estimoteclassassignment.Model.MyAdapter;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,8 +21,7 @@ import java.util.UUID;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
+
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -42,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
     private RecyclerView.Adapter mAdapter;
-    private RecyclerView.Adapter emptyAdapter;
     private RecyclerView.LayoutManager layoutManager;
 
     final ArrayList<Item> itemList = new ArrayList<>();
@@ -56,7 +49,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         SystemRequirementsChecker.checkWithDefaultDialogs(this);
 
-        System.out.println("hello");
+        //The only major and minor values that I want to find from beacons - ignore all others
+        final int[] whitelistMajor = {15212, 30462, 26535, 47152, 49357};
+        final int[] whitelistMinor = {31506, 43265, 44799, 61548, 20877};
+        //List of Beacons             class, class, class,  mine,  mine
 
         //recycler view stuff
         recyclerView = findViewById(R.id.recyclerView);
@@ -65,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
         mAdapter = new MyAdapter(itemList);
         recyclerView.setAdapter(mAdapter);
 
-        //set current major/minor to 0 - not a possible value
+        //initialize current major/minor to 0 - not a possible value
         currentMajor = 0;
         currentMinor = 0;
 
@@ -73,13 +69,32 @@ public class MainActivity extends AppCompatActivity {
 
         beaconManager.setRangingListener(new BeaconManager.BeaconRangingListener() {
             @Override
-            public void onBeaconsDiscovered(BeaconRegion beaconRegion, List<com.estimote.coresdk.recognition.packets.Beacon> beacons) {
+            public void onBeaconsDiscovered(BeaconRegion beaconRegion, List<Beacon> beacons) {
                 if (!beacons.isEmpty()) {
-                    Log.d("demo", "onBeaconsDiscovered: " + beacons);
+                    System.out.println("onBeaconsDiscovered: " + beacons);
 
                     Beacon closestBeacon = beacons.get(0);
                     int major = closestBeacon.getMajor();
                     int minor = closestBeacon.getMinor();
+
+                    boolean containsMajor = false;
+                    boolean containsMinor = false;
+
+                    for (int x : whitelistMajor) {
+                        if (x == major) {
+                            containsMajor = true;
+                        }
+                    }
+
+                    for (int x : whitelistMinor) {
+                        if (x == minor) {
+                            containsMinor = true;
+                        }
+                    }
+
+                    if (!containsMajor || !containsMinor) {
+                        return;
+                    }
 
                     if (currentMajor == 0 || currentMinor == 0) {
                         //there is not a beacon saved currently on the app (major minor)
@@ -117,7 +132,13 @@ public class MainActivity extends AppCompatActivity {
                                 //put new items in itemList
                                 for (int i = 0; i < jsonResponseData.length(); i++) {
                                     JSONObject obj = (JSONObject) jsonResponseData.get(i);
-                                    Item currentItem = new Item(obj.getInt("discount"), obj.getString("name"), obj.getString("photo"), obj.getDouble("price"), obj.getString("region"));
+                                    Item currentItem = new Item(
+                                            obj.getInt("discount"),
+                                            obj.getString("name"),
+                                            obj.getString("photo"),
+                                            obj.getDouble("price"),
+                                            obj.getString("region")
+                                    );
                                     itemList.add(currentItem);
                                 }
                             } catch (JSONException e) {
@@ -136,22 +157,16 @@ public class MainActivity extends AppCompatActivity {
                             });
                         }
                     });
+                } else {
+                    System.out.println("No beacons were found");
                 }
             }
-
         });
-
-        //These are hardcoded but should be pulled from the beacons
-        String major = "30462";
-        String minor = "43265";
-
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
-        System.out.println("in on resume");
 
         region = new BeaconRegion("ranged region",
                 UUID.fromString("B9407F30-F5F8-466E-AFF9-25556B57FE6D"), null, null);
