@@ -39,14 +39,18 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView.LayoutManager layoutManager;
 
     final ArrayList<Item> itemList = new ArrayList<>();
+    public Beacon[] beaconArr = new Beacon[5];
 
     public int currentMajor;
     public int currentMinor;
-    public int currentRssi;
+
+    public int beaconArrIndex;
+    public boolean beaconArrFull = false;
+
 
     //The only major and minor values that I want to find from beacons - ignore all others
-    final int[] whitelistMajor = {47152, 15326, 41072};
-    final int[] whitelistMinor = {61548, 56751, 44931};
+    final int[] whitelistMajor = {47152, 15326, 41072, 7518, 30462};
+    final int[] whitelistMinor = {61548, 56751, 44931, 47661, 43265};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +68,8 @@ public class MainActivity extends AppCompatActivity {
         //initialize current major/minor to 0 - not a possible value
         currentMajor = 0;
         currentMinor = 0;
+
+        beaconArrIndex = 0;
 
         beaconManager = new BeaconManager(this);
 
@@ -86,50 +92,56 @@ public class MainActivity extends AppCompatActivity {
             public void onBeaconsDiscovered(BeaconRegion beaconRegion, List<Beacon> beacons) {
                 System.out.println("Beacons: " + beacons);
 
+                Beacon firstBeacon = null;
+
                 if (!beacons.isEmpty()) {
-                    Beacon closestBeacon = beacons.get(0);
-                    int major = closestBeacon.getMajor();
-                    int minor = closestBeacon.getMinor();
-                    int rssi = closestBeacon.getRssi();
+                    int major = -1;
+                    int minor = -1;
 
-                    //check that the major/minor are in whitelist
-                    boolean containsMajor = false;
-                    boolean containsMinor = false;
+                    //The returned closest beacon is not in the whitelist. check to see if any of the items are in the whitelist
+                    boolean foundUseableBeacon = false;
 
-                    for (int x : whitelistMinor) {
-                        if (x == minor) {
-                            containsMinor = true;
+                    for (Beacon b : beacons) {
+                        for (int x : whitelistMajor) {
+                            if (x == b.getMajor()) {
+                                major = b.getMajor();
+                                minor = b.getMinor();
+                                firstBeacon = b;
+                                foundUseableBeacon = true;
+                                continue;
+                            }
                         }
                     }
 
-                    for (int x : whitelistMajor) {
-                        if (x == major) {
-                            containsMajor = true;
-                        }
+                    if (!foundUseableBeacon) {
+                        //All beacons in the list were checked and none of the majors matched the whitelist
+                        //Get all items because useable beacons are out of range
+                        getItems(-1, -1);
+                        return;
                     }
 
-                    if (!containsMajor || !containsMinor) {
-                        System.out.println("first not found");
+                    if (beaconArrFull) {
+                        Beacon[] newArr = new Beacon[5];
 
-                        //The returned closest beacon is not in the whitelist. check to see if any of the items are in the whitelist
-                        boolean foundUseableBeacon = false;
-
-                        for (Beacon b : beacons) {
-                            for (int x : whitelistMajor) {
-                                if (x == b.getMajor()) {
-                                    major = b.getMajor();
-                                    minor = b.getMinor();
-                                    foundUseableBeacon = true;
-                                    continue;
-                                }
+                        for (int i = 0; i < 5; i++) {
+                            if (i != 4) {
+                                newArr[i] = beaconArr[i+1];
+                            } else {
+                                newArr[i] = firstBeacon;
                             }
                         }
 
-                        if (!foundUseableBeacon) {
-                            //All beacons in the list were checked and none of the majors matched the whitelist
-                            //Get all items because useable beacons are out of range
-                            getItems(-1, -1);
-                            return;
+                        beaconArr = newArr;
+                        determineBeacon();
+                        System.out.println("full: " + beaconArr);
+                    } else {
+                        if (beaconArrIndex < 4) {
+                            //beacon arr is not full and we are filling up spots 0, 1, 2, 3
+                            beaconArr[beaconArrIndex] = firstBeacon;
+                            beaconArrIndex++;
+                        } else if (beaconArrIndex == 4) {
+                            beaconArr[beaconArrIndex] = firstBeacon;
+                            beaconArrFull = true;
                         }
                     }
 
@@ -138,22 +150,10 @@ public class MainActivity extends AppCompatActivity {
                         //there is not a beacon saved currently on the app (major minor)
                         currentMajor = major;
                         currentMinor = minor;
-                        currentRssi = rssi;
                     } else if (currentMajor != major || currentMinor != minor){
                         //there is a beacon saved currently on the app but the closest beacon is a new one - new request
-                        /*
-                        if (Math.abs(currentRssi - rssi) > 10) {
-                            currentMajor = major;
-                            currentMinor = minor;
-                            currentRssi = rssi;
-                        } else {
-                            //rssi difference is not enough
-                            return;
-                        }
-                        */
                         currentMajor = major;
                         currentMinor = minor;
-                        currentRssi = rssi;
                     } else {
                         //there is a beacon saved currently on the app but the closest beacon is the same - no request, same data
                         return;
@@ -165,21 +165,6 @@ public class MainActivity extends AppCompatActivity {
                     //this doesn't work at all either
                     getItems(-1, -1);
                 }
-            }
-        });
-
-        //This doesnt seem to work at all
-        beaconManager.setMonitoringListener(new BeaconManager.BeaconMonitoringListener() {
-            @Override
-            public void onEnteredRegion(BeaconRegion beaconRegion, List<Beacon> beacons) {
-                System.out.println("||||||||||||||||||||ENTER||||||||||||||||||||");
-                //this will then talk to onBeaconsDiscovered
-            }
-
-            @Override
-            public void onExitedRegion(BeaconRegion beaconRegion) {
-                System.out.println("||||||||||||||||||||EXIT||||||||||||||||||||");
-                getItems(-1, -1);
             }
         });
     }
@@ -257,5 +242,9 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    public void determineBeacon() {
+
     }
 }

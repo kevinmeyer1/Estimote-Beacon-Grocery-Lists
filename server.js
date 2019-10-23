@@ -52,10 +52,10 @@ app.post('/getItems', function(req, res) {
          major=49357, minor=20877
     */
 
-    if (major == '47152' && minor == '61548') {
+    if (major == '30462' && minor == '43265') {
         //Class beacon
         region = 'grocery'
-    } else if (major == '15326' && minor == '56751') {
+    } else if (major == '7518' && minor == '47661') {
         //Class beacon
         region = 'lifestyle'
     } else if (major == '41072' && minor == '44931') {
