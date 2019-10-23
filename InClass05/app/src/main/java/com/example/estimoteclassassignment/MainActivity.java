@@ -16,7 +16,9 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -95,32 +97,32 @@ public class MainActivity extends AppCompatActivity {
                 Beacon firstBeacon = null;
 
                 if (!beacons.isEmpty()) {
-                    int major = -1;
-                    int minor = -1;
-
-                    //The returned closest beacon is not in the whitelist. check to see if any of the items are in the whitelist
                     boolean foundUseableBeacon = false;
 
+                    //Get the first beacon in the beacons list that appears in our whitelist (a beacon that we want to read from)
                     for (Beacon b : beacons) {
                         for (int x : whitelistMajor) {
                             if (x == b.getMajor()) {
-                                major = b.getMajor();
-                                minor = b.getMinor();
                                 firstBeacon = b;
                                 foundUseableBeacon = true;
-                                continue;
+                                break;
                             }
+                        }
+
+                        if (foundUseableBeacon) {
+                            break;
                         }
                     }
 
                     if (!foundUseableBeacon) {
                         //All beacons in the list were checked and none of the majors matched the whitelist
                         //Get all items because useable beacons are out of range
-                        getItems(-1, -1);
+                        //getItems(-1, -1);
                         return;
                     }
 
                     if (beaconArrFull) {
+                        //the beacon array is full, so we remove the oldest value, shift everything down one, and then add the newest value
                         Beacon[] newArr = new Beacon[5];
 
                         for (int i = 0; i < 5; i++) {
@@ -132,38 +134,20 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         beaconArr = newArr;
-                        determineBeacon();
-                        System.out.println("full: " + beaconArr);
+
+                        //Use the new array to determine the list that we will display
+                        determineList();
                     } else {
                         if (beaconArrIndex < 4) {
                             //beacon arr is not full and we are filling up spots 0, 1, 2, 3
                             beaconArr[beaconArrIndex] = firstBeacon;
                             beaconArrIndex++;
                         } else if (beaconArrIndex == 4) {
+                            //The beacon array is now full so we can set the boolean to true so it starts calling determineList
                             beaconArr[beaconArrIndex] = firstBeacon;
                             beaconArrFull = true;
                         }
                     }
-
-                    //reset currentMajor/Minor values
-                    if (currentMajor == 0 || currentMinor == 0) {
-                        //there is not a beacon saved currently on the app (major minor)
-                        currentMajor = major;
-                        currentMinor = minor;
-                    } else if (currentMajor != major || currentMinor != minor){
-                        //there is a beacon saved currently on the app but the closest beacon is a new one - new request
-                        currentMajor = major;
-                        currentMinor = minor;
-                    } else {
-                        //there is a beacon saved currently on the app but the closest beacon is the same - no request, same data
-                        return;
-                    }
-
-                    //Sends request, calls function at bottom
-                    getItems(major, minor);
-                } else {
-                    //this doesn't work at all either
-                    getItems(-1, -1);
                 }
             }
         });
@@ -230,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
                     System.out.println(e.getLocalizedMessage());
                 }
 
-                //repopulate the list on the app
+                //populte the list on the app
                 runOnUiThread(new Runnable() {
 
                     @Override
@@ -244,7 +228,42 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void determineBeacon() {
+    //determines the list to show based on beaconArr
+    public void determineList() {
+        Map<String, Integer> counterMap = new HashMap<>();
+        int highestCount = -1;
+        String highestKey = "";
 
+        //put each beacon into the hashmap (by unique mac address) and then count the amount of times that beacon is found in the list
+        for (Beacon b: beaconArr) {
+            System.out.println(b.toString());
+            String mac = b.getMacAddress().toString();
+
+            if (counterMap.containsKey(mac)) {
+                int currentCount = counterMap.get(mac);
+                counterMap.replace(mac, currentCount + 1);
+            } else {
+                counterMap.put(mac, 1);
+            }
+        }
+
+        //check which beacon appears the most in the list
+        //this does not account for ties and will take which ever one comes first as the highest
+        //With 2 beacons in range, this is not an issue because of the uneven number of the array (5), but with 3 or more beacons this becomes an issue
+        for (String key : counterMap.keySet()) {
+            System.out.println("Mac: " + key + ", count: " + counterMap.get(key));
+            if (counterMap.get(key) > highestCount) {
+                highestCount = counterMap.get(key);
+                highestKey = key;
+            }
+        }
+
+        //Figure out which beacon the mac address belongs to and use their major/minor to get items from the server
+        for (Beacon b: beaconArr) {
+            if (b.getMacAddress().toString().equals(highestKey)) {
+                getItems(b.getMajor(), b.getMinor());
+                break;
+            }
+        }
     }
 }
