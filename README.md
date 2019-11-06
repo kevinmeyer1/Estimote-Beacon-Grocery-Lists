@@ -8,6 +8,8 @@ The API is hosted on Heroku on the web address: `https://inclass05.herokuapp.com
 
 All image files needed for this assignment are on Heroku and can be accessed from the app using URLs. Example: `https://inclass05.herokuapp.com/milk.jpg`
 
+To run this application, the app must be loaded onto an Android phone. The user must allow the applicatoin to use bluetooth on the phone so that it can located Estimote beacons in its vacinity. The phone grabs the major and minors from the beacons and uses them for the checks in the code.
+
 ## Routes
 
 ```/getItems```:
