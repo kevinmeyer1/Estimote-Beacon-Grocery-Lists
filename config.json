@@ -1,7 +1,0 @@
-{
-    "mySQLUsername": "admin",
-    "mySQLPassword": "password1234",
-    "mySQLHost": "inclass05.cn2talrxqqs7.us-east-2.rds.amazonaws.com",
-    "mySQLPort": "3306",
-    "mySQLDatabase": "items"
-}
